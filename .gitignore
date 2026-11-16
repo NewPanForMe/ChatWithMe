@@ -426,3 +426,7 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+
+# ChatWithMe: 前端构建产物与本地诊断输出
+dist/
+.dsh-acl-reports/

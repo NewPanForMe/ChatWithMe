@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 
 namespace ChatWithMe.Application.Users;
 
-internal static class PasswordHasher
+public static class PasswordHasher
 {
     private const int Iterations = 100_000;
     private const int SaltSize = 16;

@@ -1,3 +1,4 @@
+using ChatWithMe.Api.Auth;
 using ChatWithMe.Application.Common;
 using ChatWithMe.Application.Users;
 using Microsoft.AspNetCore.Authorization;
@@ -11,6 +12,7 @@ namespace ChatWithMe.Api.Controllers;
 public sealed class UsersController(IUserAppService userAppService) : ControllerBase
 {
     [HttpGet]
+    [Authorize(Policy = AuthPolicies.Admin)]
     public async Task<ActionResult<PagedResult<UserDto>>> GetListAsync(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = Paging.DefaultPageSize,
@@ -29,6 +31,15 @@ public sealed class UsersController(IUserAppService userAppService) : Controller
         var user = await userAppService.CreateAsync(request, cancellationToken);
 
         return Created("/api/users/" + user.Id, user);
+    }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Policy = AuthPolicies.Admin)]
+    public async Task<IActionResult> DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        await userAppService.DeleteAsync(id, cancellationToken);
+
+        return NoContent();
     }
 
     [HttpGet("{id:guid}")]

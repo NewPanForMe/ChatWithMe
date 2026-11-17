@@ -39,6 +39,9 @@ internal sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger, I
         InvalidDataException => StatusCodes.Status413PayloadTooLarge,
         FileValidationException => StatusCodes.Status400BadRequest,
         AuthenticationFailedException => StatusCodes.Status401Unauthorized,
+        ForbiddenException => StatusCodes.Status403Forbidden,
+        NotFoundException => StatusCodes.Status404NotFound,
+        ConflictException => StatusCodes.Status409Conflict,
         UserAlreadyExistsException => StatusCodes.Status409Conflict,
         MongoUnavailableException => StatusCodes.Status503ServiceUnavailable,
         ArgumentException => StatusCodes.Status400BadRequest,
@@ -49,6 +52,8 @@ internal sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger, I
     {
         StatusCodes.Status400BadRequest => "请求参数不合法",
         StatusCodes.Status401Unauthorized => "身份验证失败",
+        StatusCodes.Status403Forbidden => "无权访问",
+        StatusCodes.Status404NotFound => "资源不存在",
         StatusCodes.Status409Conflict => "资源冲突",
         StatusCodes.Status413PayloadTooLarge => "请求体超过大小限制",
         StatusCodes.Status503ServiceUnavailable => "依赖服务不可用",

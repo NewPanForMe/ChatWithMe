@@ -4,7 +4,17 @@ public sealed class MongoOptions
 {
     public const string SectionName = "Mongo";
 
-    public const string MessagesCollectionName = "messages";
+    /// <summary>共用库中的集合统一加此前缀，避免与其他应用的集合混淆。</summary>
+    public const string CollectionPrefix = "cwm_";
+
+    public const string MessagesCollectionName = CollectionPrefix + "messages";
+
+    public const string ConversationIndexName = "ix_cwm_messages_conversation_sent_at";
+
+    /// <summary>复合游标翻页索引：会话 + 发送时间倒序 + 消息 Id 倒序，覆盖 <c>(SentAtUtc, Id)</c> 的排序与过滤。</summary>
+    public const string PagingIndexName = "ix_cwm_messages_conversation_sent_at_id";
+
+    public const string IdempotencyIndexName = "ux_cwm_messages_conversation_client_message_id";
 
     /// <summary>
     /// 远端实例上已存在同名小写库 chatwithme（MongoDB 拒绝创建仅大小写不同的库），

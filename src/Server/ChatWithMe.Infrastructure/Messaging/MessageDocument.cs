@@ -15,6 +15,10 @@ internal sealed class MessageDocument
 
     public string Content { get; set; } = string.Empty;
 
+    /// <summary>客户端幂等键；历史数据可能没有该字段。</summary>
+    [BsonIgnoreIfNull]
+    public string? ClientMessageId { get; set; }
+
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime SentAtUtc { get; set; }
 
@@ -24,6 +28,7 @@ internal sealed class MessageDocument
         ConversationId = message.ConversationId.ToString(),
         SenderId = message.SenderId.ToString(),
         Content = message.Content,
+        ClientMessageId = message.ClientMessageId,
         SentAtUtc = message.SentAtUtc,
     };
 
@@ -32,5 +37,6 @@ internal sealed class MessageDocument
         Guid.Parse(ConversationId),
         Guid.Parse(SenderId),
         Content,
+        ClientMessageId,
         DateTime.SpecifyKind(SentAtUtc, DateTimeKind.Utc));
 }

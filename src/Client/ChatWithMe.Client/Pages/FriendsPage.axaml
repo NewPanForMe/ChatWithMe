@@ -1,0 +1,151 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:arc="https://github.com/AIDotNet/TKCode.Arc"
+             xmlns:vm="using:ChatWithMe.Client.ViewModels"
+             xmlns:models="using:ChatWithMe.Client.Models"
+             x:Class="ChatWithMe.Client.Pages.FriendsPage"
+             x:DataType="vm:FriendsPageViewModel">
+    <Grid Margin="16" ColumnDefinitions="360,*" ColumnSpacing="16">
+        <!-- 添加好友 -->
+        <Border BorderThickness="1"
+                BorderBrush="{arc:ArcDesignTokenResource BorderSubtle}"
+                CornerRadius="12"
+                Padding="12">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Spacing="10" Margin="0,0,0,10">
+                    <TextBlock Text="添加好友"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{arc:ArcDesignTokenResource Foreground}" />
+                    <TextBlock Text="按邮箱或昵称搜索用户，发送好友申请。"
+                               FontSize="{arc:ArcDesignTokenResource TypeXS}"
+                               Foreground="{arc:ArcDesignTokenResource TextMuted}" />
+                    <arc:Input Placeholder="邮箱或昵称"
+                               Text="{Binding SearchKeyword, Mode=TwoWay}" />
+                    <arc:Button Content="搜索"
+                                Variant="Primary"
+                                HorizontalAlignment="Stretch"
+                                Command="{Binding SearchCommand}" />
+                    <TextBlock Text="{Binding SearchStatus}"
+                               IsVisible="{Binding HasSearchStatus}"
+                               TextWrapping="Wrap"
+                               FontSize="{arc:ArcDesignTokenResource TypeXS}"
+                               Foreground="{arc:ArcDesignTokenResource TextSecondary}" />
+                </StackPanel>
+
+                <ItemsControl ItemsSource="{Binding SearchResults}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:UserSummaryDto">
+                            <Grid ColumnDefinitions="*,Auto" Margin="2,4">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{Binding NickName}"
+                                               FontWeight="Medium"
+                                               Foreground="{arc:ArcDesignTokenResource Foreground}" />
+                                    <TextBlock Text="{Binding Email}"
+                                               FontSize="{arc:ArcDesignTokenResource TypeXS}"
+                                               Foreground="{arc:ArcDesignTokenResource TextMuted}" />
+                                </StackPanel>
+                                <arc:Button Grid.Column="1"
+                                            Content="加好友"
+                                            Variant="Secondary"
+                                            Size="Small"
+                                            Click="OnAddFriendClick" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </DockPanel>
+        </Border>
+
+        <!-- 申请与好友列表 -->
+        <Border Grid.Column="1"
+                BorderThickness="1"
+                BorderBrush="{arc:ArcDesignTokenResource BorderSubtle}"
+                CornerRadius="12"
+                Padding="16">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,10">
+                    <TextBlock Text="好友"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{arc:ArcDesignTokenResource Foreground}" />
+                </StackPanel>
+
+                <ScrollViewer>
+                    <StackPanel Spacing="18">
+                        <StackPanel Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Text="好友申请"
+                                           FontWeight="Medium"
+                                           Foreground="{arc:ArcDesignTokenResource Foreground}" />
+                                <arc:Button Grid.Column="1"
+                                            Content="刷新"
+                                            Variant="Ghost"
+                                            Size="Small"
+                                            Command="{Binding RefreshCommand}" />
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding IncomingRequests}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:FriendRequestDto">
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,4">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="{Binding RequesterNickName}"
+                                                           FontWeight="Medium"
+                                                           Foreground="{arc:ArcDesignTokenResource Foreground}" />
+                                                <TextBlock Text="{Binding RequesterEmail}"
+                                                           FontSize="{arc:ArcDesignTokenResource TypeXS}"
+                                                           Foreground="{arc:ArcDesignTokenResource TextMuted}" />
+                                            </StackPanel>
+                                            <arc:Button Grid.Column="1"
+                                                        Content="同意"
+                                                        Variant="Primary"
+                                                        Size="Small"
+                                                        Click="OnAcceptClick" />
+                                            <arc:Button Grid.Column="2"
+                                                        Content="拒绝"
+                                                        Variant="Ghost"
+                                                        Size="Small"
+                                                        Click="OnRejectClick" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="我的好友"
+                                       FontWeight="Medium"
+                                       Foreground="{arc:ArcDesignTokenResource Foreground}" />
+                            <ItemsControl ItemsSource="{Binding Friends}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:FriendDto">
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,4">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="{Binding NickName}"
+                                                           FontWeight="Medium"
+                                                           Foreground="{arc:ArcDesignTokenResource Foreground}" />
+                                                <TextBlock Text="{Binding Email}"
+                                                           FontSize="{arc:ArcDesignTokenResource TypeXS}"
+                                                           Foreground="{arc:ArcDesignTokenResource TextMuted}" />
+                                            </StackPanel>
+                                            <arc:Button Grid.Column="1"
+                                                        Content="发消息"
+                                                        Variant="Secondary"
+                                                        Size="Small"
+                                                        Click="OnChatClick" />
+                                            <arc:Button Grid.Column="2"
+                                                        Content="删除"
+                                                        Variant="Ghost"
+                                                        Size="Small"
+                                                        Click="OnRemoveClick" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

@@ -12,8 +12,6 @@ public sealed class RuntimeConnectionStringProvider : IConnectionStringProvider
 {
     public const string HttpClientName = "ChatWithMe.ConnectionString";
 
-    public const string DeliveryKeyConfigurationKey = "Security:DeliveryKey";
-
     public const string EndpointConfigurationKey = "Security:ConnectionStringEndpoint";
 
     public const string PostgresConnectionNameConfigurationKey = "Security:ConnectionNames:Postgres";
@@ -23,7 +21,6 @@ public sealed class RuntimeConnectionStringProvider : IConnectionStringProvider
     private const string ConnectionNameQueryKey = "connName=";
     private const int NonceSize = 12;
     private const int TagSize = 16;
-    private const int KeySize = 32;
     private const int PayloadOverhead = NonceSize + TagSize;
 
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
@@ -33,17 +30,24 @@ public sealed class RuntimeConnectionStringProvider : IConnectionStringProvider
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
+    private readonly DeliveryKeyProvider _deliveryKey;
+    private readonly ConnectionStringCache _cacheStore;
     private readonly ILogger<RuntimeConnectionStringProvider> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private readonly ConcurrentDictionary<string, string> _cache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, string> _resolved = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, ConnectionStringStatus> _statuses = new(StringComparer.OrdinalIgnoreCase);
 
     public RuntimeConnectionStringProvider(
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
+        DeliveryKeyProvider deliveryKey,
+        ConnectionStringCache cacheStore,
         ILogger<RuntimeConnectionStringProvider> logger)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
+        _deliveryKey = deliveryKey;
+        _cacheStore = cacheStore;
         _logger = logger;
     }
 
@@ -51,7 +55,7 @@ public sealed class RuntimeConnectionStringProvider : IConnectionStringProvider
     {
         var resolvedName = ResolveConnectionName(connName);
 
-        if (_cache.TryGetValue(resolvedName, out var cached))
+        if (_resolved.TryGetValue(resolvedName, out var cached))
         {
             return cached;
         }
@@ -60,13 +64,13 @@ public sealed class RuntimeConnectionStringProvider : IConnectionStringProvider
 
         try
         {
-            if (_cache.TryGetValue(resolvedName, out cached))
+            if (_resolved.TryGetValue(resolvedName, out cached))
             {
                 return cached;
             }
 
             var connectionString = ResolveAsync(resolvedName, CancellationToken.None).GetAwaiter().GetResult();
-            _cache[resolvedName] = connectionString;
+            _resolved[resolvedName] = connectionString;
 
             return connectionString;
         }
@@ -80,7 +84,7 @@ public sealed class RuntimeConnectionStringProvider : IConnectionStringProvider
     {
         var resolvedName = ResolveConnectionName(connName);
 
-        if (_cache.TryGetValue(resolvedName, out var cached))
+        if (_resolved.TryGetValue(resolvedName, out var cached))
         {
             return cached;
         }
@@ -89,13 +93,13 @@ public sealed class RuntimeConnectionStringProvider : IConnectionStringProvider
 
         try
         {
-            if (_cache.TryGetValue(resolvedName, out cached))
+            if (_resolved.TryGetValue(resolvedName, out cached))
             {
                 return cached;
             }
 
             var connectionString = await ResolveAsync(resolvedName, cancellationToken).ConfigureAwait(false);
-            _cache[resolvedName] = connectionString;
+            _resolved[resolvedName] = connectionString;
 
             return connectionString;
         }
@@ -103,6 +107,16 @@ public sealed class RuntimeConnectionStringProvider : IConnectionStringProvider
         {
             _gate.Release();
         }
+    }
+
+    /// <summary>最近一次解析状态；健康检查与启动日志据此显式报告"远端 / 缓存"。</summary>
+    public ConnectionStringStatus GetStatus(string? connName = null)
+    {
+        var resolvedName = ResolveConnectionName(connName);
+
+        return _statuses.TryGetValue(resolvedName, out var status)
+            ? status
+            : ConnectionStringStatus.Unknown(resolvedName);
     }
 
     private string ResolveConnectionName(string? connName)
@@ -119,7 +133,7 @@ public sealed class RuntimeConnectionStringProvider : IConnectionStringProvider
 
     private async Task<string> ResolveAsync(string connName, CancellationToken cancellationToken)
     {
-        var key = ResolveDeliveryKey();
+        var key = _deliveryKey.Key;
         var endpoint = _configuration[EndpointConfigurationKey];
 
         if (string.IsNullOrWhiteSpace(endpoint))
@@ -127,40 +141,57 @@ public sealed class RuntimeConnectionStringProvider : IConnectionStringProvider
             endpoint = DefaultEndpoint;
         }
 
-        var payload = await RequestPayloadAsync(WithConnectionName(endpoint, connName), cancellationToken).ConfigureAwait(false);
-
-        return Decrypt(payload.ConnectionStringEncrypted!, key);
-    }
-
-    private byte[] ResolveDeliveryKey()
-    {
-        var configured = _configuration[DeliveryKeyConfigurationKey];
-
-        if (string.IsNullOrWhiteSpace(configured))
-        {
-            throw new InvalidOperationException(
-                "缺少配置项 Security:DeliveryKey（32 字节密钥的 Base64 字符串），无法解密远端连接串。" +
-                "请执行 dotnet user-secrets --project ChatWithMe.Api set \"Security:DeliveryKey\" \"<密钥>\" 写入用户机密，或设置环境变量 Security__DeliveryKey。");
-        }
-
-        byte[] key;
-
         try
         {
-            key = Convert.FromBase64String(configured);
-        }
-        catch (FormatException ex)
-        {
-            throw new InvalidOperationException("配置项 Security:DeliveryKey 不是合法的 Base64 字符串。", ex);
-        }
+            var payload = await RequestPayloadAsync(WithConnectionName(endpoint, connName), cancellationToken).ConfigureAwait(false);
+            var connectionString = Decrypt(payload.ConnectionStringEncrypted!, key);
 
-        if (key.Length != KeySize)
-        {
-            throw new InvalidOperationException(
-                "配置项 Security:DeliveryKey 解码后为 " + key.Length + " 字节，AES-256-GCM 要求 32 字节。");
-        }
+            _cacheStore.Write(connName, connectionString, key);
+            _statuses[connName] = new ConnectionStringStatus(
+                connName,
+                ConnectionStringSource.Remote,
+                DateTime.UtcNow,
+                null,
+                endpoint,
+                "连接串来自远端 ToolsConsole");
 
-        return key;
+            return connectionString;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            var cached = _cacheStore.TryRead(connName, key);
+
+            if (cached is null)
+            {
+                _statuses[connName] = new ConnectionStringStatus(
+                    connName,
+                    ConnectionStringSource.Unknown,
+                    DateTime.UtcNow,
+                    null,
+                    endpoint,
+                    "远端连接串不可用且本地无可用缓存：" + exception.Message);
+
+                throw new InvalidOperationException(
+                    "从远端接口获取连接串失败，且本地没有可用缓存（" + _cacheStore.CacheDirectory + "）：" + exception.Message,
+                    exception);
+            }
+
+            _logger.LogWarning(
+                exception,
+                "远端连接串不可用，回退到本地加密缓存（缓存时间 {CachedAtUtc}）：{Reason}",
+                cached.CachedAtUtc,
+                exception.Message);
+
+            _statuses[connName] = new ConnectionStringStatus(
+                connName,
+                ConnectionStringSource.Cache,
+                DateTime.UtcNow,
+                cached.CachedAtUtc,
+                endpoint,
+                "远端连接串不可用，已回退本地缓存：" + exception.Message);
+
+            return cached.ConnectionString;
+        }
     }
 
     private static string WithConnectionName(string endpoint, string connName)

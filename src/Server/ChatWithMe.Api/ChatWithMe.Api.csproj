@@ -24,4 +24,8 @@
     <ProjectReference Include="..\ChatWithMe.Infrastructure\ChatWithMe.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\uploads\" />
+  </ItemGroup>
+
 </Project>

@@ -19,5 +19,22 @@ public sealed class RefreshTokenRepository : IRefreshTokenRepository
     public Task<RefreshToken?> GetByHashAsync(string tokenHash, CancellationToken cancellationToken) =>
         _context.RefreshTokens.FirstOrDefaultAsync(refreshToken => refreshToken.TokenHash == tokenHash, cancellationToken);
 
+    public async Task<int> RevokeAllForUserAsync(Guid userId, DateTime utcNow, CancellationToken cancellationToken)
+    {
+        var active = await _context.RefreshTokens
+            .Where(refreshToken => refreshToken.UserId == userId
+                && refreshToken.RevokedAtUtc == null
+                && refreshToken.ExpiresAtUtc > utcNow)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var refreshToken in active)
+        {
+            refreshToken.Revoke(utcNow, null);
+        }
+
+        return active.Count;
+    }
+
     public Task SaveChangesAsync(CancellationToken cancellationToken) => _context.SaveChangesAsync(cancellationToken);
 }

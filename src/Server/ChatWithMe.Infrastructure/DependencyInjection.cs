@@ -1,8 +1,11 @@
 using ChatWithMe.Application.Abstractions;
 using ChatWithMe.Application.Auth;
 using ChatWithMe.Application.Messages;
+using ChatWithMe.Domain.Admin;
 using ChatWithMe.Domain.Auth;
+using ChatWithMe.Domain.Conversations;
 using ChatWithMe.Domain.Files;
+using ChatWithMe.Domain.Friendships;
 using ChatWithMe.Domain.Messages;
 using ChatWithMe.Domain.Users;
 using ChatWithMe.Infrastructure.Auth;
@@ -31,6 +34,9 @@ public static class DependencyInjection
             client.DefaultRequestHeaders.Add("Accept", "application/json");
         });
 
+        services.AddSingleton<DeliveryKeyProvider>(provider =>
+            new DeliveryKeyProvider(provider.GetRequiredService<IConfiguration>()[DeliveryKeyProvider.ConfigurationKey]));
+        services.AddSingleton<ConnectionStringCache>();
         services.AddSingleton<IConnectionStringProvider, RuntimeConnectionStringProvider>();
         services.AddSingleton<IClock, SystemClock>();
 
@@ -38,10 +44,16 @@ public static class DependencyInjection
             options.UseNpgsql(serviceProvider.GetRequiredService<IConnectionStringProvider>().GetConnectionString()));
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IAdminUserRepository, AdminUserRepository>();
         services.AddScoped<IFileAssetRepository, FileAssetRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IConversationRepository, ConversationRepository>();
+        services.AddScoped<IFriendshipRepository, FriendshipRepository>();
+        services.AddScoped<IFriendRequestRepository, FriendRequestRepository>();
+        services.AddScoped<IBlockRepository, BlockRepository>();
         services.AddScoped<IMessageRepository, MongoMessageRepository>();
         services.AddSingleton<IFileStorage, LocalFileStorage>();
+        services.AddSingleton<IFileLinkSigner, FileLinkSigner>();
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<MongoOptions>(configuration.GetSection(MongoOptions.SectionName));

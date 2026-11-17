@@ -1,5 +1,3 @@
-import type { AuthTokenDto } from './types'
-
 const API_BASE = ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:5217').replace(/\/+$/, '')
 
 export const apiBaseUrl = API_BASE
@@ -19,15 +17,14 @@ export class ApiError extends Error {
 
 interface AuthHandlers {
   getAccessToken: () => string | null
-  getRefreshToken: () => string | null
-  updateTokens: (accessToken: string, refreshToken: string) => void
+  /** 用 HttpOnly Cookie 换新的 access token；失败抛错或返回 null。 */
+  refreshSession: () => Promise<string | null>
   onAuthLost: () => void
 }
 
 let handlers: AuthHandlers = {
   getAccessToken: () => null,
-  getRefreshToken: () => null,
-  updateTokens: () => undefined,
+  refreshSession: async () => null,
   onAuthLost: () => undefined,
 }
 
@@ -36,35 +33,19 @@ export function configureAuth(next: AuthHandlers): void {
   handlers = next
 }
 
-let refreshInFlight: Promise<boolean> | null = null
+let refreshInFlight: Promise<string | null> | null = null
 
-/** 单飞刷新：并发 401 只会触发一次 refresh，其余请求复用同一个 Promise。 */
-function refreshAccessToken(): Promise<boolean> {
-  const refreshToken = handlers.getRefreshToken()
-
-  if (!refreshToken) {
-    return Promise.resolve(false)
-  }
-
+/**
+ * 单飞刷新：并发 401 只会触发一次 refresh，其余请求复用同一个 Promise。
+ * 刷新令牌在 HttpOnly Cookie 里，前端只更新内存中的 access token。
+ */
+function refreshAccessToken(): Promise<string | null> {
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/auth/refresh`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ refreshToken }),
-        })
-
-        if (!response.ok) {
-          return false
-        }
-
-        const data = (await response.json()) as AuthTokenDto
-        handlers.updateTokens(data.accessToken, data.refreshToken)
-
-        return true
+        return await handlers.refreshSession()
       } catch {
-        return false
+        return null
       } finally {
         refreshInFlight = null
       }
@@ -123,12 +104,17 @@ export interface RequestOptions {
 
 export async function request<T>(path: string, init: RequestInit = {}, options: RequestOptions = {}): Promise<T> {
   const withAuth = options.auth ?? true
-  const response = await fetch(`${API_BASE}${path}`, { ...init, headers: buildHeaders(init, withAuth) })
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    // 刷新令牌走 HttpOnly Cookie，必须带凭据；access token 只在内存里加 Authorization。
+    credentials: 'include',
+    headers: buildHeaders(init, withAuth),
+  })
 
   if (response.status === 401 && withAuth && (options.retryOnUnauthorized ?? true)) {
-    const refreshed = await refreshAccessToken()
+    const accessToken = await refreshAccessToken()
 
-    if (refreshed) {
+    if (accessToken) {
       return request<T>(path, init, { ...options, retryOnUnauthorized: false })
     }
 

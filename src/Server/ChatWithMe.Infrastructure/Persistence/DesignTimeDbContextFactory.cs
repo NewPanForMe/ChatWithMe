@@ -41,6 +41,9 @@ public sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Cha
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddEnvironmentVariables().Build());
         services.AddLogging();
         services.AddHttpClient();
+        services.AddSingleton<DeliveryKeyProvider>(provider =>
+            new DeliveryKeyProvider(provider.GetRequiredService<IConfiguration>()[DeliveryKeyProvider.ConfigurationKey]));
+        services.AddSingleton<ConnectionStringCache>();
         services.AddSingleton<IConnectionStringProvider, RuntimeConnectionStringProvider>();
 
         using var provider = services.BuildServiceProvider();

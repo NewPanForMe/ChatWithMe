@@ -1,4 +1,5 @@
 using ChatWithMe.Application.Messages;
+using ChatWithMe.Infrastructure.ConnectionStrings;
 using ChatWithMe.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,24 +11,33 @@ namespace ChatWithMe.Api.Controllers;
 public sealed class HealthController(
     ChatWithMeDbContext dbContext,
     IMongoHealthProbe mongoHealthProbe,
+    IConnectionStringProvider connectionStringProvider,
     ILogger<HealthController> logger) : ControllerBase
 {
+    /// <summary>
+    /// 数据库连通性。<c>connectionStringSource</c> 显式暴露连接串来自远端还是本地缓存，
+    /// 避免"外部依赖降级"静默不可见。
+    /// </summary>
     [HttpGet("db")]
     public async Task<IActionResult> GetDatabaseHealthAsync(CancellationToken cancellationToken)
     {
+        var status = connectionStringProvider.GetStatus();
+
         try
         {
             var canConnect = await dbContext.Database.CanConnectAsync(cancellationToken);
 
             return Ok(new DatabaseHealthResponse(
                 canConnect ? "ok" : "unreachable",
+                status.Source.ToString().ToLowerInvariant(),
+                status.CachedAtUtc,
                 canConnect ? "连接串解密成功，远端 PostgreSQL 连接可用" : "CanConnectAsync 返回 false"));
         }
         catch (Exception exception)
         {
             logger.LogError(exception, "数据库连通性检查失败");
 
-            return Ok(new DatabaseHealthResponse("unreachable", exception.Message));
+            return Ok(new DatabaseHealthResponse("unreachable", status.Source.ToString().ToLowerInvariant(), status.CachedAtUtc, exception.Message));
         }
     }
 
@@ -51,7 +61,7 @@ public sealed class HealthController(
         });
     }
 
-    public sealed record DatabaseHealthResponse(string Database, string Detail);
+    public sealed record DatabaseHealthResponse(string Database, string ConnectionStringSource, DateTime? ConnectionStringCachedAtUtc, string Detail);
 
     public sealed record MongoHealthResponse(string Mongo, string Detail);
 }

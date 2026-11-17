@@ -1,3 +1,4 @@
+using ChatWithMe.Application.Abstractions;
 using ChatWithMe.Application.Common;
 using ChatWithMe.Application.Files;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +9,10 @@ namespace ChatWithMe.Api.Controllers;
 
 [ApiController]
 [Route("api/files")]
-public sealed class FilesController(IFileAppService fileAppService, IOptions<FileUploadOptions> options) : ControllerBase
+public sealed class FilesController(
+    IFileAppService fileAppService,
+    IFileLinkSigner fileLinkSigner,
+    IOptions<FileUploadOptions> options) : ControllerBase
 {
     private const long MaxUploadBytes = 32 * 1024 * 1024;
 
@@ -75,5 +79,65 @@ public sealed class FilesController(IFileAppService fileAppService, IOptions<Fil
         var fileAsset = await fileAppService.GetAsync(id, cancellationToken);
 
         return fileAsset is null ? NotFound() : Ok(fileAsset);
+    }
+
+    /// <summary>
+    /// 文件回读。两种放行方式：带 Bearer 的登录用户；或带 <c>exp</c> + <c>sig</c> 的短时签名链接
+    /// （由 <c>GET /api/files/{id}/link</c> 生成）。不再有匿名静态目录。
+    /// </summary>
+    [HttpGet("{id:guid}/content")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetContentAsync(
+        Guid id,
+        [FromQuery] long? exp,
+        [FromQuery] string? sig,
+        CancellationToken cancellationToken)
+    {
+        if (!HasSignatureAccess(id, exp, sig) && User.Identity?.IsAuthenticated != true)
+        {
+            return Unauthorized(new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "身份验证失败",
+                Detail = "文件回读需要 Bearer 令牌，或使用 GET /api/files/{id}/link 生成的短时签名链接。",
+            });
+        }
+
+        var content = await fileAppService.OpenContentAsync(id, cancellationToken);
+
+        return content is null
+            ? NotFound()
+            : File(content.Content, content.ContentType, enableRangeProcessing: true);
+    }
+
+    /// <summary>为登录用户生成短时签名回读链接（文件未公开暴露，链接过期即失效）。</summary>
+    [HttpGet("{id:guid}/link")]
+    [Authorize]
+    public async Task<ActionResult<FileLinkDto>> CreateLinkAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var link = await fileAppService.CreateLinkAsync(id, cancellationToken);
+
+        return link is null ? NotFound() : Ok(link);
+    }
+
+    private bool HasSignatureAccess(Guid id, long? exp, string? sig)
+    {
+        if (exp is null || string.IsNullOrWhiteSpace(sig))
+        {
+            return false;
+        }
+
+        DateTime expiresAtUtc;
+
+        try
+        {
+            expiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(exp.Value).UtcDateTime;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return false;
+        }
+
+        return fileLinkSigner.Verify(id, expiresAtUtc, sig);
     }
 }

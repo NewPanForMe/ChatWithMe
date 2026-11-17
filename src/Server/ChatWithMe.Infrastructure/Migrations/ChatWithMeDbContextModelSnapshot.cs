@@ -22,6 +22,55 @@ namespace ChatWithMe.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("ChatWithMe.Domain.Admin.AdminUser", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("display_name");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("email");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("password_hash");
+
+                    b.Property<int>("SessionVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("session_version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("ux_admin_users_email");
+
+                    b.ToTable("admin_users", (string)null);
+                });
+
             modelBuilder.Entity("ChatWithMe.Domain.Auth.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -65,6 +114,76 @@ namespace ChatWithMe.Infrastructure.Migrations
                         .HasDatabaseName("ix_refresh_tokens_user_id");
 
                     b.ToTable("refresh_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("ChatWithMe.Domain.Conversations.Conversation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("title");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId")
+                        .HasDatabaseName("ix_conversations_created_by_user_id");
+
+                    b.ToTable("conversations", (string)null);
+                });
+
+            modelBuilder.Entity("ChatWithMe.Domain.Conversations.ConversationMember", b =>
+                {
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("conversation_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTime>("JoinedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("joined_at_utc");
+
+                    b.Property<DateTime?>("LastReadAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_read_at_utc");
+
+                    b.Property<string>("LastReadMessageId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("last_read_message_id");
+
+                    b.Property<DateTime?>("MutedUntilUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("muted_until_utc");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer")
+                        .HasColumnName("role");
+
+                    b.HasKey("ConversationId", "UserId");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_conversation_members_user_id");
+
+                    b.ToTable("conversation_members", (string)null);
                 });
 
             modelBuilder.Entity("ChatWithMe.Domain.Files.FileAsset", b =>
@@ -117,6 +236,97 @@ namespace ChatWithMe.Infrastructure.Migrations
                     b.ToTable("file_assets", (string)null);
                 });
 
+            modelBuilder.Entity("ChatWithMe.Domain.Friendships.FriendRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AddresseeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("addressee_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("message");
+
+                    b.Property<Guid>("RequesterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("requester_id");
+
+                    b.Property<DateTime?>("RespondedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("responded_at_utc");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddresseeId", "Status")
+                        .HasDatabaseName("ix_friend_requests_addressee_status");
+
+                    b.HasIndex("RequesterId", "Status")
+                        .HasDatabaseName("ix_friend_requests_requester_status");
+
+                    b.ToTable("friend_requests", (string)null);
+                });
+
+            modelBuilder.Entity("ChatWithMe.Domain.Friendships.Friendship", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("FriendId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("friend_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Remark")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("remark");
+
+                    b.HasKey("UserId", "FriendId");
+
+                    b.HasIndex("FriendId")
+                        .HasDatabaseName("ix_friendships_friend_id");
+
+                    b.ToTable("friendships", (string)null);
+                });
+
+            modelBuilder.Entity("ChatWithMe.Domain.Friendships.UserBlock", b =>
+                {
+                    b.Property<Guid>("BlockerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("blocker_id");
+
+                    b.Property<Guid>("BlockedId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("blocked_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.HasKey("BlockerId", "BlockedId");
+
+                    b.HasIndex("BlockedId")
+                        .HasDatabaseName("ix_user_blocks_blocked_id");
+
+                    b.ToTable("user_blocks", (string)null);
+                });
+
             modelBuilder.Entity("ChatWithMe.Domain.Users.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -139,6 +349,18 @@ namespace ChatWithMe.Infrastructure.Migrations
                         .HasColumnType("character varying(400)")
                         .HasColumnName("password_hash");
 
+                    b.Property<int>("Role")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("role");
+
+                    b.Property<int>("SessionVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("session_version");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAtUtc")
@@ -155,6 +377,15 @@ namespace ChatWithMe.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_refresh_tokens_users_user_id");
+                });
+
+            modelBuilder.Entity("ChatWithMe.Domain.Conversations.ConversationMember", b =>
+                {
+                    b.HasOne("ChatWithMe.Domain.Conversations.Conversation", null)
+                        .WithMany("Members")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ChatWithMe.Domain.Users.User", b =>
@@ -183,6 +414,11 @@ namespace ChatWithMe.Infrastructure.Migrations
 
                     b.Navigation("Email")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ChatWithMe.Domain.Conversations.Conversation", b =>
+                {
+                    b.Navigation("Members");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { apiBaseUrl, describeError, request } from '../api/http'
-import type { FileAssetDto, PagedResult } from '../api/types'
+import { notifyError, notifySuccess } from '../utils/notify'
+import type { FileAssetDto, FileLinkDto, PagedResult } from '../api/types'
 
 const rows = ref<FileAssetDto[]>([])
 const total = ref(0)
@@ -9,7 +10,7 @@ const page = ref(1)
 const pageSize = ref(20)
 const keyword = ref('')
 const loading = ref(false)
-const error = ref('')
+const openingId = ref<string | null>(null)
 
 const columns = [
   { colKey: 'originalName', title: '原始文件名', width: 260 },
@@ -31,9 +32,8 @@ function formatSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`
 }
 
-async function load(): Promise<void> {
+async function load(successTitle = ''): Promise<void> {
   loading.value = true
-  error.value = ''
 
   try {
     const query = new URLSearchParams({ page: String(page.value), pageSize: String(pageSize.value) })
@@ -45,8 +45,11 @@ async function load(): Promise<void> {
     const data = await request<PagedResult<FileAssetDto>>(`/api/files?${query.toString()}`)
     rows.value = data.items
     total.value = data.total
+    if (successTitle) {
+      notifySuccess(successTitle)
+    }
   } catch (exception) {
-    error.value = describeError(exception)
+    notifyError('刷新失败', describeError(exception))
     rows.value = []
     total.value = 0
   } finally {
@@ -54,24 +57,54 @@ async function load(): Promise<void> {
   }
 }
 
-function onSearch(): void {
-  page.value = 1
-  void load()
+/** 文件不再有匿名静态路径：先换一个短时签名链接，再在新标签页打开。 */
+async function openFile(row: FileAssetDto): Promise<void> {
+  // 先同步开空白页再赋值：await 之后浏览器已认为不是用户手势，window.open 会被拦截。
+  const preview = window.open('', '_blank')
+
+  openingId.value = row.id
+
+  try {
+    const link = await request<FileLinkDto>(`/api/files/${row.id}/link`)
+    const target = `${apiBaseUrl}${link.url}`
+
+    if (preview) {
+      preview.opener = null
+      preview.location.href = target
+    } else {
+      window.location.href = target
+    }
+  } catch (exception) {
+    preview?.close()
+    notifyError('打开文件失败', describeError(exception))
+  } finally {
+    openingId.value = null
+  }
 }
 
-function onCurrentChange(current: number, size: number): void {
+function onSearch(): void {
+  page.value = 1
+  void load('查询成功')
+}
+
+interface PageInfoLike {
+  current?: number
+  pageSize?: number
+}
+
+function onCurrentChange(current: number, pageInfo: PageInfoLike): void {
   page.value = current
 
-  if (size) {
-    pageSize.value = size
+  if (pageInfo?.pageSize) {
+    pageSize.value = pageInfo.pageSize
   }
 
   void load()
 }
 
-function onPageSizeChange(size: number, current: number): void {
+function onPageSizeChange(size: number, pageInfo: PageInfoLike): void {
   pageSize.value = size
-  page.value = current || 1
+  page.value = pageInfo?.current ?? 1
   void load()
 }
 
@@ -89,11 +122,9 @@ onMounted(() => {
       </div>
       <div class="toolbar-right">
         <span class="muted">共 {{ total }} 条</span>
-        <t-button variant="outline" :loading="loading" @click="load">刷新</t-button>
+        <t-button variant="outline" :loading="loading" @click="load('刷新成功')">刷新</t-button>
       </div>
     </div>
-
-    <t-alert v-if="error" theme="error" :message="error" class="page-error" />
 
     <t-table
       row-key="id"
@@ -105,7 +136,7 @@ onMounted(() => {
       table-layout="fixed"
     >
       <template #originalName="{ row }">
-        <a :href="apiBaseUrl + row.url" target="_blank" rel="noreferrer">{{ row.originalName }}</a>
+        <a href="#" @click.prevent="openFile(row)">{{ row.originalName }}</a>
       </template>
       <template #sizeInBytes="{ row }">
         {{ formatSize(row.sizeInBytes) }}

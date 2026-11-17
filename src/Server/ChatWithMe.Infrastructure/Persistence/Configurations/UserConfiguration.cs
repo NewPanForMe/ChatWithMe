@@ -36,6 +36,17 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(400)
             .IsRequired();
 
+        builder.Property(user => user.Role)
+            .HasColumnName("role")
+            .HasConversion<int>()
+            .HasDefaultValue(UserRole.Member)
+            .IsRequired();
+
+        builder.Property(user => user.SessionVersion)
+            .HasColumnName("session_version")
+            .HasDefaultValue(0)
+            .IsRequired();
+
         builder.Property(user => user.CreatedAtUtc)
             .HasColumnName("created_at_utc")
             .HasColumnType("timestamp with time zone")

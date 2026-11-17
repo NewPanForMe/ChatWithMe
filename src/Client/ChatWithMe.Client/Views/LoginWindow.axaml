@@ -1,0 +1,86 @@
+<arc:ArcWindow xmlns="https://github.com/avaloniaui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+               xmlns:arc="https://github.com/AIDotNet/TKCode.Arc"
+               xmlns:vm="using:ChatWithMe.Client.ViewModels"
+               x:Class="ChatWithMe.Client.Views.LoginWindow"
+               x:DataType="vm:LoginViewModel"
+               Title="登录 · ChatWithMe"
+               Width="440"
+               Height="600"
+               CanResize="False"
+               WindowStartupLocation="CenterScreen">
+    <arc:ArcWindow.TitleBar>
+        <arc:TitleBar />
+    </arc:ArcWindow.TitleBar>
+
+    <Grid Margin="36,24,36,36" RowDefinitions="*,Auto">
+        <StackPanel VerticalAlignment="Center" Spacing="18">
+            <StackPanel Spacing="6">
+                <TextBlock Text="ChatWithMe"
+                           FontSize="{arc:ArcDesignTokenResource Type2XL}"
+                           FontWeight="SemiBold"
+                           Foreground="{arc:ArcDesignTokenResource Foreground}" />
+                <TextBlock Text="登录后即可开始聊天"
+                           Foreground="{arc:ArcDesignTokenResource TextSecondary}"
+                           IsVisible="{Binding IsLoginMode}" />
+                <TextBlock Text="创建账号，注册后自动登录"
+                           Foreground="{arc:ArcDesignTokenResource TextSecondary}"
+                           IsVisible="{Binding IsRegisterMode}" />
+            </StackPanel>
+
+            <!-- 登录 -->
+            <StackPanel Spacing="18" IsVisible="{Binding IsLoginMode}">
+                <arc:Input Label="邮箱"
+                           Placeholder="name@example.com"
+                           Text="{Binding Email, Mode=TwoWay}" />
+
+                <arc:PasswordField Label="密码"
+                                   Placeholder="请输入密码"
+                                   Text="{Binding Password, Mode=TwoWay}"
+                                   ErrorMessage="{Binding ErrorMessage}" />
+
+                <arc:Button Content="登录"
+                            Variant="Primary"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding LoginCommand}" />
+
+                <arc:Button Content="注册账号"
+                            Variant="Ghost"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding ShowRegisterCommand}" />
+            </StackPanel>
+
+            <!-- 注册 -->
+            <StackPanel Spacing="14" IsVisible="{Binding IsRegisterMode}">
+                <arc:Input Label="邮箱"
+                           Placeholder="name@example.com"
+                           Text="{Binding Email, Mode=TwoWay}" />
+
+                <arc:PasswordField Label="密码"
+                                   Placeholder="至少 6 位"
+                                   Text="{Binding Password, Mode=TwoWay}" />
+
+                <arc:PasswordField Label="确认密码"
+                                   Placeholder="再次输入密码"
+                                   Text="{Binding ConfirmPassword, Mode=TwoWay}" />
+
+                <TextBlock Text="{Binding ErrorMessage}"
+                           IsVisible="{Binding HasError}"
+                           TextWrapping="Wrap"
+                           FontSize="{arc:ArcDesignTokenResource TypeXS}"
+                           Foreground="{arc:ArcDesignTokenResource TextSecondary}" />
+
+                <arc:Button Content="注册并登录"
+                            Variant="Primary"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding RegisterCommand}" />
+
+                <arc:Button Content="返回登录"
+                            Variant="Ghost"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding ShowLoginCommand}" />
+            </StackPanel>
+        </StackPanel>
+
+    </Grid>
+</arc:ArcWindow>

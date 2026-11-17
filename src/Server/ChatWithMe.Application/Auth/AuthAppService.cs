@@ -64,7 +64,7 @@ public sealed class AuthAppService : IAuthAppService
             throw new RefreshTokenRejectedException(InvalidRefreshTokenMessage);
         }
 
-        var issued = _tokenIssuer.Issue(user.Id, user.Email.Value);
+        var issued = _tokenIssuer.Issue(user.Id, user.Email.Value, user.Role, user.SessionVersion, AuthClaimNames.PrincipalUser);
         var issuedHash = _tokenHasher.Hash(issued.RefreshToken);
 
         current.Revoke(_clock.UtcNow, issuedHash);
@@ -105,7 +105,7 @@ public sealed class AuthAppService : IAuthAppService
 
     private async Task<AuthTokenDto> IssueAsync(User user, CancellationToken cancellationToken)
     {
-        var issued = _tokenIssuer.Issue(user.Id, user.Email.Value);
+        var issued = _tokenIssuer.Issue(user.Id, user.Email.Value, user.Role, user.SessionVersion, AuthClaimNames.PrincipalUser);
 
         await _refreshTokenRepository
             .AddAsync(

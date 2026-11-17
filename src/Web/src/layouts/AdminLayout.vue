@@ -2,14 +2,17 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { logout, session } from '../stores/auth'
+import { notifySuccess } from '../utils/notify'
 
 const route = useRoute()
 const router = useRouter()
 
 const menus = [
   { value: '/users', label: '用户管理' },
+  { value: '/admin-users', label: '后端用户' },
   { value: '/files', label: '文件管理' },
   { value: '/messages', label: '消息查询' },
+  { value: '/online', label: '在线管理' },
 ]
 
 const activeMenu = computed(() => menus.find((menu) => route.path.startsWith(menu.value))?.value ?? '/users')
@@ -22,6 +25,7 @@ function onMenuChange(value: string | number): void {
 async function onLogout(): Promise<void> {
   await logout()
   await router.replace({ name: 'login' })
+  notifySuccess('已退出登录')
 }
 </script>
 

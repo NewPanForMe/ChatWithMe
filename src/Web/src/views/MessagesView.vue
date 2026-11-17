@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { describeError, request } from '../api/http'
+import { notifyError, notifySuccess } from '../utils/notify'
 import type { MessageDto, MessagePage } from '../api/types'
 
 const conversationId = ref('')
@@ -9,7 +10,6 @@ const rows = ref<MessageDto[]>([])
 const nextBefore = ref<string | null>(null)
 const hasMore = ref(false)
 const loading = ref(false)
-const error = ref('')
 const searched = ref(false)
 
 const limitOptions = [
@@ -27,12 +27,11 @@ const columns = [
 
 async function fetchPage(reset: boolean): Promise<void> {
   if (!conversationId.value.trim()) {
-    error.value = '请输入会话 ID（GUID）。'
+    notifyError('无法查询消息', '请输入会话 ID（GUID）。')
     return
   }
 
   loading.value = true
-  error.value = ''
   searched.value = true
 
   try {
@@ -50,8 +49,9 @@ async function fetchPage(reset: boolean): Promise<void> {
     rows.value = reset ? data.items : [...rows.value, ...data.items]
     nextBefore.value = data.nextBefore
     hasMore.value = data.items.length >= limit.value && Boolean(data.nextBefore)
+    notifySuccess(reset ? '查询成功' : '加载成功', `本次加载 ${data.items.length} 条消息。`)
   } catch (exception) {
-    error.value = describeError(exception)
+    notifyError(reset ? '查询消息失败' : '加载消息失败', describeError(exception))
   } finally {
     loading.value = false
   }
@@ -87,8 +87,6 @@ function onLoadMore(): void {
         <span class="muted">已加载 {{ rows.length }} 条</span>
       </div>
     </div>
-
-    <t-alert v-if="error" theme="error" :message="error" class="page-error" />
 
     <t-table
       row-key="id"

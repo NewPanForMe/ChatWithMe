@@ -212,8 +212,15 @@ a:hover {
   line-height: 1.6;
 }
 
-.login-error {
-  margin-bottom: 16px;
+/* 输入区域收窄并居中，按钮与上方输入框拉开距离 */
+.login-form {
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.login-submit {
+  margin-top: 24px;
 }
 
 .login-tip {

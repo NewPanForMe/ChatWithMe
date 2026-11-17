@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Client/">
+    <Project Path="src/Client/ChatWithMe.Client/ChatWithMe.Client.csproj" />
+    <Project Path="src/Client/ChatWithMe.Client.Tests/ChatWithMe.Client.Tests.csproj" />
+  </Folder>
+  <Folder Name="/src/Server/">
+    <Project Path="src/Server/ChatWithMe.Api/ChatWithMe.Api.csproj" />
+    <Project Path="src/Server/ChatWithMe.Application/ChatWithMe.Application.csproj" />
+    <Project Path="src/Server/ChatWithMe.Domain/ChatWithMe.Domain.csproj" />
+    <Project Path="src/Server/ChatWithMe.Infrastructure/ChatWithMe.Infrastructure.csproj" />
+    <Project Path="src/Server/ChatWithMe.Tests/ChatWithMe.Tests.csproj" />
+  </Folder>
+</Solution>

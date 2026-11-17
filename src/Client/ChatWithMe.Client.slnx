@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ChatWithMe.Client/ChatWithMe.Client.csproj" />
+  <Project Path="ChatWithMe.Client.Tests/ChatWithMe.Client.Tests.csproj" />
+</Solution>

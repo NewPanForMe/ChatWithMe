@@ -25,19 +25,42 @@ internal sealed class MongoIndexInitializer : IHostedService
             using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutSource.CancelAfter(TimeSpan.FromSeconds(_options.ServerSelectionTimeoutSeconds > 0 ? _options.ServerSelectionTimeoutSeconds : 5));
 
-            var keys = Builders<MessageDocument>.IndexKeys
-                .Ascending(document => document.ConversationId)
-                .Descending(document => document.SentAtUtc);
-
             var collection = _mongoClient.Value
                 .GetDatabase(_options.DatabaseName)
                 .GetCollection<MessageDocument>(MongoOptions.MessagesCollectionName);
 
+            var pagingKeys = Builders<MessageDocument>.IndexKeys
+                .Ascending(document => document.ConversationId)
+                .Descending(document => document.SentAtUtc)
+                .Descending(document => document.Id);
+
+            var idempotencyKeys = Builders<MessageDocument>.IndexKeys
+                .Ascending(document => document.ConversationId)
+                .Ascending(document => document.ClientMessageId);
+
+            var indexes = new[]
+            {
+                new CreateIndexModel<MessageDocument>(
+                    pagingKeys,
+                    new CreateIndexOptions { Name = MongoOptions.PagingIndexName }),
+                new CreateIndexModel<MessageDocument>(
+                    idempotencyKeys,
+                    new CreateIndexOptions<MessageDocument>
+                    {
+                        Name = MongoOptions.IdempotencyIndexName,
+                        Unique = true,
+                        PartialFilterExpression = Builders<MessageDocument>.Filter.Exists(document => document.ClientMessageId),
+                    }),
+            };
+
             await collection.Indexes
-                .CreateOneAsync(new CreateIndexModel<MessageDocument>(keys, new CreateIndexOptions { Name = "ix_messages_conversation_sent_at" }), cancellationToken: timeoutSource.Token)
+                .CreateManyAsync(indexes, cancellationToken: timeoutSource.Token)
                 .ConfigureAwait(false);
 
-            _logger.LogInformation("MongoDB 消息集合索引已就绪：{IndexName}", "ix_messages_conversation_sent_at");
+            _logger.LogInformation(
+                "MongoDB 消息集合索引已就绪：{PagingIndex}、{IdempotencyIndex}",
+                MongoOptions.PagingIndexName,
+                MongoOptions.IdempotencyIndexName);
         }
         catch (Exception exception)
         {

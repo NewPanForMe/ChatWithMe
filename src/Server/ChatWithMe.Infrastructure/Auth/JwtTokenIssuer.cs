@@ -1,8 +1,10 @@
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using ChatWithMe.Application.Abstractions;
 using ChatWithMe.Application.Auth;
+using ChatWithMe.Domain.Users;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -25,7 +27,7 @@ public sealed class JwtTokenIssuer : ITokenIssuer
             SecurityAlgorithms.HmacSha256);
     }
 
-    public IssuedTokenPair Issue(Guid userId, string email)
+    public IssuedTokenPair Issue(Guid userId, string email, UserRole role, int sessionVersion, string principalType)
     {
         var issuedAt = _clock.UtcNow;
         var accessTokenExpiresAtUtc = issuedAt.AddMinutes(_options.AccessTokenLifetimeMinutes);
@@ -36,6 +38,9 @@ public sealed class JwtTokenIssuer : ITokenIssuer
             new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, email),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(AuthClaimNames.Role, role.ToString()),
+            new Claim(AuthClaimNames.SessionVersion, sessionVersion.ToString(CultureInfo.InvariantCulture)),
+            new Claim(AuthClaimNames.PrincipalType, principalType),
         };
 
         var descriptor = new SecurityTokenDescriptor

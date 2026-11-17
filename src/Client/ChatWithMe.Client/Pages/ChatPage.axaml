@@ -1,0 +1,136 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:arc="https://github.com/AIDotNet/TKCode.Arc"
+             xmlns:vm="using:ChatWithMe.Client.ViewModels"
+             xmlns:models="using:ChatWithMe.Client.Models"
+             xmlns:lucide="https://github.com/AIDotNet/TKCode.Arc/lucide"
+             x:Class="ChatWithMe.Client.Pages.ChatPage"
+             x:DataType="vm:ChatPageViewModel">
+    <UserControl.Styles>
+        <Style Selector="arc|Button.icon-only">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid Margin="16" ColumnDefinitions="300,*" ColumnSpacing="16">
+        <!-- 好友列表：点击好友直接开始聊天 -->
+        <Border BorderThickness="1"
+                BorderBrush="{arc:ArcDesignTokenResource BorderSubtle}"
+                CornerRadius="12"
+                Padding="12">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="好友"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   Foreground="{arc:ArcDesignTokenResource Foreground}" />
+                        <arc:Button Grid.Column="1"
+                                    Classes="icon-only"
+                                    Variant="Ghost"
+                                    ToolTip.Tip="刷新好友列表"
+                                    Command="{Binding RefreshCommand}">
+                            <lucide:LucideIcon Kind="RefreshCw" Size="16" />
+                        </arc:Button>
+                    </Grid>
+                    <TextBlock Text="点击好友开始聊天；还没有好友时去「好友」页添加。"
+                               TextWrapping="Wrap"
+                               FontSize="{arc:ArcDesignTokenResource TypeXS}"
+                               Foreground="{arc:ArcDesignTokenResource TextMuted}" />
+                </StackPanel>
+
+                <ScrollViewer>
+                    <ItemsControl ItemsSource="{Binding Friends}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:FriendDto">
+                                <arc:Button Variant="Ghost"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Left"
+                                            Padding="8,6"
+                                            Margin="0,2"
+                                            Click="OnFriendClick">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   FontWeight="Medium"
+                                                   Foreground="{arc:ArcDesignTokenResource Foreground}" />
+                                        <TextBlock Text="{Binding Email}"
+                                                   FontSize="{arc:ArcDesignTokenResource TypeXS}"
+                                                   Foreground="{arc:ArcDesignTokenResource TextMuted}" />
+                                    </StackPanel>
+                                </arc:Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- 消息区 -->
+        <Border Grid.Column="1"
+                BorderThickness="1"
+                BorderBrush="{arc:ArcDesignTokenResource BorderSubtle}"
+                CornerRadius="12"
+                Padding="16">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
+                    <TextBlock Text="{Binding ConversationTitle}"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{arc:ArcDesignTokenResource Foreground}" />
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Foreground="{arc:ArcDesignTokenResource TextSecondary}"
+                               FontSize="{arc:ArcDesignTokenResource TypeXS}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,12,0,0">
+                    <arc:Input Placeholder="输入消息，Enter 发送"
+                               Text="{Binding Draft, Mode=TwoWay}"
+                               KeyDown="OnComposerKeyDown" />
+                    <arc:Button Grid.Column="1"
+                                Content="发送"
+                                Variant="Primary"
+                                Command="{Binding SendCommand}" />
+                </Grid>
+
+                <ScrollViewer x:Name="MessageScroll"
+                              PointerWheelChanged="OnMessagesWheel"
+                              PointerExited="OnMessagesPointerExited">
+                    <ItemsControl ItemsSource="{Binding Messages}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:MessageItem">
+                                <Border Margin="0,4"
+                                        Padding="10,8"
+                                        CornerRadius="10"
+                                        BorderThickness="1"
+                                        BorderBrush="{arc:ArcDesignTokenResource BorderSubtle}"
+                                        HorizontalAlignment="Left"
+                                        MaxWidth="560"
+                                        PointerMoved="OnMessagePointerMoved">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{Binding SenderName}"
+                                                   FontSize="{arc:ArcDesignTokenResource TypeXS}"
+                                                   Foreground="{arc:ArcDesignTokenResource TextMuted}" />
+                                        <TextBlock Text="{Binding Content}"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{arc:ArcDesignTokenResource Foreground}" />
+                                        <!-- 默认隐藏，滚动或悬停时才显示 -->
+                                        <TextBlock Text="{Binding Time}"
+                                                   IsVisible="{Binding IsTimeVisible}"
+                                                   FontSize="{arc:ArcDesignTokenResource TypeXS}"
+                                                   Foreground="{arc:ArcDesignTokenResource TextMuted}" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

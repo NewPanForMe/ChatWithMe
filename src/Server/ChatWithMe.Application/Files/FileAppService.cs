@@ -8,19 +8,27 @@ namespace ChatWithMe.Application.Files;
 
 public sealed class FileAppService : IFileAppService
 {
+    private const string ContentPathPrefix = "/api/files/";
+
     private readonly IFileStorage _fileStorage;
     private readonly IFileAssetRepository _fileAssetRepository;
+    private readonly IFileLinkSigner _fileLinkSigner;
+    private readonly IClock _clock;
     private readonly FileUploadOptions _options;
     private readonly ILogger<FileAppService> _logger;
 
     public FileAppService(
         IFileStorage fileStorage,
         IFileAssetRepository fileAssetRepository,
+        IFileLinkSigner fileLinkSigner,
+        IClock clock,
         IOptions<FileUploadOptions> options,
         ILogger<FileAppService> logger)
     {
         _fileStorage = fileStorage;
         _fileAssetRepository = fileAssetRepository;
+        _fileLinkSigner = fileLinkSigner;
+        _clock = clock;
         _options = options.Value;
         _logger = logger;
     }
@@ -93,18 +101,48 @@ public sealed class FileAppService : IFileAppService
         return new PagedResult<FileAssetDto>(fileAssets.Select(ToDto).ToList(), total, normalizedPage, normalizedPageSize);
     }
 
-    private FileAssetDto ToDto(FileAsset fileAsset)
+    public async Task<StoredFileContent?> OpenContentAsync(Guid id, CancellationToken cancellationToken)
     {
-        var prefix = string.IsNullOrWhiteSpace(_options.PublicUrlPrefix) ? "/uploads" : _options.PublicUrlPrefix.TrimEnd('/');
+        var fileAsset = await _fileAssetRepository.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
-        return new FileAssetDto(
+        if (fileAsset is null)
+        {
+            return null;
+        }
+
+        return await _fileStorage
+            .OpenReadAsync(fileAsset.RelativePath, fileAsset.ContentType, fileAsset.OriginalName, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<FileLinkDto?> CreateLinkAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var fileAsset = await _fileAssetRepository.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+
+        if (fileAsset is null)
+        {
+            return null;
+        }
+
+        var lifetimeSeconds = _options.LinkLifetimeSeconds > 0 ? _options.LinkLifetimeSeconds : 300;
+        var expiresAtUtc = _clock.UtcNow.AddSeconds(lifetimeSeconds);
+        var signature = _fileLinkSigner.CreateSignature(fileAsset.Id, expiresAtUtc);
+        var expiresAtUnix = new DateTimeOffset(DateTime.SpecifyKind(expiresAtUtc, DateTimeKind.Utc)).ToUnixTimeSeconds();
+        var url = ContentPathPrefix + fileAsset.Id + "/content?exp=" + expiresAtUnix + "&sig=" + Uri.EscapeDataString(signature);
+
+        _logger.LogInformation("已生成文件回读链接：{FileAssetId}，{LifetimeSeconds} 秒后过期", fileAsset.Id, lifetimeSeconds);
+
+        return new FileLinkDto(url, expiresAtUtc);
+    }
+
+    private static FileAssetDto ToDto(FileAsset fileAsset) =>
+        new(
             fileAsset.Id,
             fileAsset.OriginalName,
             fileAsset.StoredName,
             fileAsset.RelativePath,
             fileAsset.ContentType,
             fileAsset.SizeInBytes,
-            prefix + "/" + fileAsset.RelativePath,
+            ContentPathPrefix + fileAsset.Id + "/content",
             fileAsset.CreatedAtUtc);
-    }
 }

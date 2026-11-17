@@ -101,4 +101,38 @@ public sealed class LocalFileStorage : IFileStorage
 
         return Task.CompletedTask;
     }
+
+    public Task<StoredFileContent> OpenReadAsync(string relativePath, string contentType, string fileName, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
+
+        var absolutePath = Path.GetFullPath(Path.Combine(_root, relativePath));
+        var rootWithSeparator = _root.EndsWith(Path.DirectorySeparatorChar)
+            ? _root
+            : _root + Path.DirectorySeparatorChar;
+
+        if (!absolutePath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new FileValidationException("非法文件路径：" + relativePath);
+        }
+
+        if (!File.Exists(absolutePath))
+        {
+            throw new NotFoundException("文件已不在存储中：" + relativePath);
+        }
+
+        Stream content = new FileStream(
+            absolutePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            81920,
+            useAsync: true);
+
+        return Task.FromResult(new StoredFileContent(
+            content,
+            string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType,
+            string.IsNullOrWhiteSpace(fileName) ? Path.GetFileName(absolutePath) : fileName,
+            content.Length));
+    }
 }

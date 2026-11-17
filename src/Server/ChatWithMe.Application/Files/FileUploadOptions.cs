@@ -10,5 +10,9 @@ public sealed class FileUploadOptions
 
     public int MaxFilesPerRequest { get; set; } = 5;
 
-    public string PublicUrlPrefix { get; set; } = "/uploads";
+    /// <summary>
+    /// 回读链接（短时签名 URL）的有效期，单位秒。文件不再通过静态目录匿名暴露，
+    /// 直链只在有效期内可访问，过期需重新申请。
+    /// </summary>
+    public int LinkLifetimeSeconds { get; set; } = 300;
 }

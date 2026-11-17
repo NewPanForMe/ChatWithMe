@@ -1,10 +1,14 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import AdminLayout from '../layouts/AdminLayout.vue'
-import FilesView from '../views/FilesView.vue'
-import LoginView from '../views/LoginView.vue'
-import MessagesView from '../views/MessagesView.vue'
-import UsersView from '../views/UsersView.vue'
 import { isAuthenticated } from '../stores/auth'
+
+// 路由级动态 import：每个页面单独成 chunk，首屏不再把四个页面一起加载。
+const AdminLayout = () => import('../layouts/AdminLayout.vue')
+const AdminUsersView = () => import('../views/AdminUsersView.vue')
+const FilesView = () => import('../views/FilesView.vue')
+const LoginView = () => import('../views/LoginView.vue')
+const MessagesView = () => import('../views/MessagesView.vue')
+const OnlineView = () => import('../views/OnlineView.vue')
+const UsersView = () => import('../views/UsersView.vue')
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -22,8 +26,10 @@ const router = createRouter({
       children: [
         { path: '', redirect: { name: 'users' } },
         { path: 'users', name: 'users', component: UsersView, meta: { requiresAuth: true, title: '用户管理' } },
+        { path: 'admin-users', name: 'admin-users', component: AdminUsersView, meta: { requiresAuth: true, title: '后端用户' } },
         { path: 'files', name: 'files', component: FilesView, meta: { requiresAuth: true, title: '文件管理' } },
         { path: 'messages', name: 'messages', component: MessagesView, meta: { requiresAuth: true, title: '消息查询' } },
+        { path: 'online', name: 'online', component: OnlineView, meta: { requiresAuth: true, title: '在线管理' } },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: { name: 'users' } },

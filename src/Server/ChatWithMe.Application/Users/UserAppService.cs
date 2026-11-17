@@ -60,5 +60,15 @@ public sealed class UserAppService : IUserAppService
         return new PagedResult<UserDto>(users.Select(ToDto).ToList(), total, normalizedPage, normalizedPageSize);
     }
 
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var user = await _userRepository.GetByIdAsync(id, cancellationToken).ConfigureAwait(false)
+            ?? throw new NotFoundException("用户不存在。");
+
+        await _userRepository.DeleteAsync(id, cancellationToken).ConfigureAwait(false);
+
+        _logger.LogWarning("用户已删除：{UserId} {Email}", user.Id, user.Email.Value);
+    }
+
     private static UserDto ToDto(User user) => new(user.Id, user.Email.Value, user.NickName, user.CreatedAtUtc);
 }

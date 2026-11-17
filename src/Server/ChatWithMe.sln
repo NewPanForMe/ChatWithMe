@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatWithMe.Infrastructure",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatWithMe.Api", "ChatWithMe.Api\ChatWithMe.Api.csproj", "{4A78B91D-58DF-4A82-B530-A42E4366AA71}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatWithMe.Tests", "ChatWithMe.Tests\ChatWithMe.Tests.csproj", "{3568F1E9-249D-4222-BC2D-7BBF3433DA47}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{4A78B91D-58DF-4A82-B530-A42E4366AA71}.Release|x64.Build.0 = Release|Any CPU
 		{4A78B91D-58DF-4A82-B530-A42E4366AA71}.Release|x86.ActiveCfg = Release|Any CPU
 		{4A78B91D-58DF-4A82-B530-A42E4366AA71}.Release|x86.Build.0 = Release|Any CPU
+		{3568F1E9-249D-4222-BC2D-7BBF3433DA47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3568F1E9-249D-4222-BC2D-7BBF3433DA47}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3568F1E9-249D-4222-BC2D-7BBF3433DA47}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3568F1E9-249D-4222-BC2D-7BBF3433DA47}.Debug|x64.Build.0 = Debug|Any CPU
+		{3568F1E9-249D-4222-BC2D-7BBF3433DA47}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3568F1E9-249D-4222-BC2D-7BBF3433DA47}.Debug|x86.Build.0 = Debug|Any CPU
+		{3568F1E9-249D-4222-BC2D-7BBF3433DA47}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3568F1E9-249D-4222-BC2D-7BBF3433DA47}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3568F1E9-249D-4222-BC2D-7BBF3433DA47}.Release|x64.ActiveCfg = Release|Any CPU
+		{3568F1E9-249D-4222-BC2D-7BBF3433DA47}.Release|x64.Build.0 = Release|Any CPU
+		{3568F1E9-249D-4222-BC2D-7BBF3433DA47}.Release|x86.ActiveCfg = Release|Any CPU
+		{3568F1E9-249D-4222-BC2D-7BBF3433DA47}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

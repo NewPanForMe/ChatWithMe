@@ -1,3 +1,5 @@
+using ChatWithMe.Application.Auth;
+using ChatWithMe.Domain.Users;
 using ChatWithMe.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -32,7 +34,11 @@ internal static class AuthenticationExtensions
                 };
             });
 
-        services.AddAuthorization();
+        services.AddAuthorization(options => options.AddPolicy(
+            AuthPolicies.Admin,
+            policy => policy
+                .RequireClaim(AuthClaimNames.Role, UserRole.Admin.ToString())
+                .RequireClaim(AuthClaimNames.PrincipalType, AuthClaimNames.PrincipalAdmin)));
 
         return services;
     }

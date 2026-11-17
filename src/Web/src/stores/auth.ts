@@ -1,52 +1,24 @@
 import { reactive } from 'vue'
 import { configureAuth, request } from '../api/http'
-import type { AuthTokenDto, UserDto } from '../api/types'
+import type { AuthSessionDto, UserDto } from '../api/types'
 
-const STORAGE_KEY = 'chatwithme.admin.session'
-
+/**
+ * 会话状态只存在内存里：access token 不落 localStorage，刷新令牌在 HttpOnly Cookie 中，
+ * 前端 JS 读不到。刷新页面后由 bootstrapSession() 用 Cookie 静默换回新的 access token。
+ */
 interface SessionState {
   accessToken: string | null
-  refreshToken: string | null
   user: UserDto | null
 }
 
 export const session = reactive<SessionState>({
   accessToken: null,
-  refreshToken: null,
   user: null,
 })
 
-function persist(): void {
-  if (!session.accessToken || !session.refreshToken) {
-    localStorage.removeItem(STORAGE_KEY)
-    return
-  }
-
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({
-      accessToken: session.accessToken,
-      refreshToken: session.refreshToken,
-      user: session.user,
-    }),
-  )
-}
-
-export function restoreSession(): void {
-  const raw = localStorage.getItem(STORAGE_KEY)
-
-  if (!raw) {
-    return
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as Partial<SessionState>
-    session.accessToken = parsed.accessToken ?? null
-    session.refreshToken = parsed.refreshToken ?? null
-    session.user = parsed.user ?? null
-  } catch {
-    localStorage.removeItem(STORAGE_KEY)
-  }
+function applySession(data: AuthSessionDto): void {
+  session.accessToken = data.accessToken
+  session.user = data.user
 }
 
 export function isAuthenticated(): boolean {
@@ -55,51 +27,57 @@ export function isAuthenticated(): boolean {
 
 export function clearSession(): void {
   session.accessToken = null
-  session.refreshToken = null
   session.user = null
-  persist()
+}
+
+function refreshSession(): Promise<AuthSessionDto> {
+  return request<AuthSessionDto>(
+    '/api/auth/refresh',
+    { method: 'POST' },
+    { auth: false, retryOnUnauthorized: false },
+  )
+}
+
+/** 启动时用 HttpOnly 刷新令牌 Cookie 静默恢复会话；没有有效 Cookie 就保持未登录。 */
+export async function bootstrapSession(): Promise<void> {
+  try {
+    applySession(await refreshSession())
+  } catch {
+    clearSession()
+  }
 }
 
 export async function login(email: string, password: string): Promise<void> {
-  const tokens = await request<AuthTokenDto>(
-    '/api/auth/login',
+  const data = await request<AuthSessionDto>(
+    '/api/admin/auth/login',
     { method: 'POST', body: JSON.stringify({ email, password }) },
     { auth: false, retryOnUnauthorized: false },
   )
 
-  session.accessToken = tokens.accessToken
-  session.refreshToken = tokens.refreshToken
-  session.user = tokens.user
-  persist()
+  applySession(data)
 }
 
 export async function logout(): Promise<void> {
-  const refreshToken = session.refreshToken
-
-  clearSession()
-
-  if (!refreshToken) {
-    return
-  }
-
   try {
     await request<void>(
       '/api/auth/logout',
-      { method: 'POST', body: JSON.stringify({ refreshToken }) },
+      { method: 'POST' },
       { auth: false, retryOnUnauthorized: false },
     )
   } catch {
     // 本地会话已清空，服务端吊销失败不影响退出。
+  } finally {
+    clearSession()
   }
 }
 
 configureAuth({
   getAccessToken: () => session.accessToken,
-  getRefreshToken: () => session.refreshToken,
-  updateTokens: (accessToken, refreshToken) => {
-    session.accessToken = accessToken
-    session.refreshToken = refreshToken
-    persist()
+  refreshSession: async () => {
+    const data = await refreshSession()
+    applySession(data)
+
+    return data.accessToken
   },
   onAuthLost: () => {
     clearSession()

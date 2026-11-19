@@ -20,6 +20,7 @@ public static class AppServices
         services.AddScoped<MainViewModel>();
         services.AddTransient<LoginViewModel>();
         services.AddScoped<ChatPageViewModel>();
+        services.AddScoped<NotificationsPageViewModel>();
         services.AddTransient<FriendsPageViewModel>();
         services.AddTransient<SettingsPageViewModel>();
         return services.BuildServiceProvider();

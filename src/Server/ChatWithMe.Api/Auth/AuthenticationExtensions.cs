@@ -34,11 +34,15 @@ internal static class AuthenticationExtensions
                 };
             });
 
-        services.AddAuthorization(options => options.AddPolicy(
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(AuthPolicies.ChatUser, policy => policy.RequireClaim(AuthClaimNames.PrincipalType, AuthClaimNames.PrincipalUser));
+            options.AddPolicy(
             AuthPolicies.Admin,
             policy => policy
                 .RequireClaim(AuthClaimNames.Role, UserRole.Admin.ToString())
-                .RequireClaim(AuthClaimNames.PrincipalType, AuthClaimNames.PrincipalAdmin)));
+                .RequireClaim(AuthClaimNames.PrincipalType, AuthClaimNames.PrincipalAdmin));
+        });
 
         return services;
     }

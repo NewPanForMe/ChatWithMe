@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:arc="https://github.com/AIDotNet/TKCode.Arc"
+             xmlns:vm="using:ChatWithMe.Client.ViewModels"
+             xmlns:models="using:ChatWithMe.Client.Models"
+             x:Class="ChatWithMe.Client.Pages.NotificationsPage"
+             x:DataType="vm:NotificationsPageViewModel">
+    <Grid Margin="16" ColumnDefinitions="300,*" ColumnSpacing="16">
+        <DockPanel>
+            <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,12">
+                <TextBlock Text="通知列表" FontSize="18" FontWeight="SemiBold" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <arc:Button Content="刷新" Command="{Binding RefreshCommand}" />
+                    <arc:Button Content="加载更多" Command="{Binding LoadMoreCommand}" IsVisible="{Binding HasMore}" />
+                </StackPanel>
+            </StackPanel>
+            <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding Notifications}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:AnnouncementDto">
+                            <arc:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Margin="0,4" Variant="Ghost" Click="OnOpenClick">
+                                <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
+                            </arc:Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
+        <Border Grid.Column="1" BorderThickness="1" CornerRadius="12" Padding="20" BorderBrush="{arc:ArcDesignTokenResource BorderSubtle}">
+            <ScrollViewer>
+                <StackPanel Spacing="16">
+                    <TextBlock Text="通知详情" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SelectedNotification.Title}" FontSize="20" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding SelectedNotification.CreatedAtUtc}" Foreground="{arc:ArcDesignTokenResource TextMuted}" />
+                    <TextBlock Text="{Binding SelectedNotification.Content}" TextWrapping="Wrap" />
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

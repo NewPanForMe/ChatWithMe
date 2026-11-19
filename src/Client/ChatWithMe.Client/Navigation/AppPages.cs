@@ -20,12 +20,14 @@ public static class AppPages
     public const string Chat = "chat";
     public const string Friends = "friends";
     public const string Settings = "settings";
+    public const string Notifications = "notifications";
 
     public static IReadOnlyList<AppPage> All { get; } =
     [
         new(Chat, "聊天", () => new ChatPage { DataContext = App.Services.GetRequiredService<ChatPageViewModel>() }),
         new(Friends, "好友", () => new FriendsPage { DataContext = App.Services.GetRequiredService<FriendsPageViewModel>() }),
         new(Settings, "设置", () => new SettingsPage { DataContext = App.Services.GetRequiredService<SettingsPageViewModel>() }),
+        new(Notifications, "通知", () => new NotificationsPage { DataContext = App.Services.GetRequiredService<NotificationsPageViewModel>() }),
     ];
 
     public static AppPage? Find(string? key)

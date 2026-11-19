@@ -24,6 +24,7 @@ const router = createRouter({
       component: AdminLayout,
       meta: { requiresAuth: true },
       children: [
+        { path: 'notifications', name: 'notifications', component: () => import('../views/NotificationsView.vue'), meta: { requiresAuth: true, title: '通知管理' } },
         { path: '', redirect: { name: 'users' } },
         { path: 'users', name: 'users', component: UsersView, meta: { requiresAuth: true, title: '用户管理' } },
         { path: 'admin-users', name: 'admin-users', component: AdminUsersView, meta: { requiresAuth: true, title: '后端用户' } },

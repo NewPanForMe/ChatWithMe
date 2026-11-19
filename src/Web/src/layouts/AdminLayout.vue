@@ -8,6 +8,7 @@ const route = useRoute()
 const router = useRouter()
 
 const menus = [
+  { value: '/notifications', label: '通知管理' },
   { value: '/users', label: '用户管理' },
   { value: '/admin-users', label: '后端用户' },
   { value: '/files', label: '文件管理' },

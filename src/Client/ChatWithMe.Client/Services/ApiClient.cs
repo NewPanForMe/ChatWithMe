@@ -253,6 +253,18 @@ public sealed class ApiClient : IDisposable
         return await ReadAsync<List<BlockedUserDto>>(response, cancellationToken);
     }
 
+    public async Task<AnnouncementPage> GetNotificationsAsync(int page = 1, CancellationToken cancellationToken = default)
+    {
+        using var response = await SendAsync(HttpMethod.Get, $"api/notifications?page={page}&pageSize=20", null, cancellationToken);
+        return await ReadAsync<AnnouncementPage>(response, cancellationToken);
+    }
+
+    public async Task<AnnouncementDto> GetNotificationAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        using var response = await SendAsync(HttpMethod.Get, "api/notifications/" + id, null, cancellationToken);
+        return await ReadAsync<AnnouncementDto>(response, cancellationToken);
+    }
+
     private async Task<HttpResponseMessage> SendAsync(
         HttpMethod method,
         string path,

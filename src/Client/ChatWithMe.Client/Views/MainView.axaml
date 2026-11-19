@@ -63,6 +63,7 @@
             <arc:SidebarSection>
                 <arc:SidebarItem Key="chat" Label="聊天" Icon="{lucide:LucideGeometry MessageCircle}" />
                 <arc:SidebarItem Key="friends" Label="好友" Icon="{lucide:LucideGeometry Users}" />
+                <arc:SidebarItem Key="notifications" Label="通知" Icon="{lucide:LucideGeometry Bell}" />
             </arc:SidebarSection>
             <arc:SidebarSection>
                 <arc:SidebarItem Key="settings" Label="设置" Icon="{lucide:LucideGeometry Settings}" />

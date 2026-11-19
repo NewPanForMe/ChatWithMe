@@ -327,6 +327,40 @@ namespace ChatWithMe.Infrastructure.Migrations
                     b.ToTable("user_blocks", (string)null);
                 });
 
+            modelBuilder.Entity("ChatWithMe.Domain.Notifications.Announcement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AdminId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("admin_id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)")
+                        .HasColumnName("content");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc", "Id")
+                        .HasDatabaseName("ix_announcements_created_id");
+
+                    b.ToTable("announcements", (string)null);
+                });
+
             modelBuilder.Entity("ChatWithMe.Domain.Users.User", b =>
                 {
                     b.Property<Guid>("Id")

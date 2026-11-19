@@ -10,6 +10,7 @@ public sealed class ChatConnection(ApiClient apiClient, Session session) : IAsyn
     private HubConnection? _connection;
 
     public event Action<MessageDto>? MessageReceived;
+    public event Action<AnnouncementDto>? NotificationReceived;
 
     public event Action? Reconnected;
 
@@ -32,6 +33,7 @@ public sealed class ChatConnection(ApiClient apiClient, Session session) : IAsyn
                     .Build();
 
                 _connection.On<MessageDto>("messageReceived", message => MessageReceived?.Invoke(message));
+                _connection.On<AnnouncementDto>("notificationReceived", notification => NotificationReceived?.Invoke(notification));
                 // 管理员踢人会主动断开连接；通过 HTTP 校验区分会话吊销与普通网络中断。
                 _connection.Reconnecting += _ => CheckSessionAsync();
                 _connection.Closed += _ => CheckSessionAsync();

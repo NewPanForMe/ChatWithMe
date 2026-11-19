@@ -44,6 +44,7 @@ public static class DependencyInjection
             options.UseNpgsql(serviceProvider.GetRequiredService<IConnectionStringProvider>().GetConnectionString()));
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ChatWithMe.Domain.Notifications.IAnnouncementRepository, AnnouncementRepository>();
         services.AddScoped<IAdminUserRepository, AdminUserRepository>();
         services.AddScoped<IFileAssetRepository, FileAssetRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();

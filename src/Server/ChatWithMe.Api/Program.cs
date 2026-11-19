@@ -83,7 +83,10 @@ builder.Services.AddScoped<IAdminUserAppService, AdminUserAppService>();
 builder.Services.AddScoped<IAdminAuthAppService, AdminAuthAppService>();
 builder.Services.AddScoped<IAdminAccountAppService, AdminAccountAppService>();
 
-builder.Services.AddSignalR();
+builder.Services.AddSignalR().AddJsonProtocol(options =>
+    options.PayloadSerializerOptions.Converters.Add(new LocalDateTimeConverter(timeZone)));
+builder.Services.AddScoped<ChatWithMe.Application.Notifications.AnnouncementAppService>();
+builder.Services.AddSingleton<ChatWithMe.Application.Notifications.IAnnouncementNotifier, SignalRAnnouncementNotifier>();
 builder.Services.AddSingleton<IOnlineUserRegistry, InMemoryOnlineUserRegistry>();
 builder.Services.AddSingleton<IConnectionTracker, InMemoryConnectionTracker>();
 builder.Services.AddSingleton<IOnlineSessionTerminator, SignalROnlineSessionTerminator>();
